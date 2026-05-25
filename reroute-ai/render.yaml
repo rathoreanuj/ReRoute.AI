@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: reroute-backend
+    env: python
+    region: ohio
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -e ".[agent,db]"
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: database_url
+        fromDatabase:
+          name: reroute-db
+          property: connectionString
+      - key: redis_url
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AVIATION_STACK_API_KEY
+        sync: false
+      - key: DUFFEL_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: OPENROUTESERVICE_API_KEY
+        sync: false
+      - key: jwt_secret_key
+        generateValue: true
+
+  - type: worker
+    name: reroute-worker
+    env: python
+    region: ohio
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -e ".[agent,db]"
+    startCommand: celery -A worker.tasks worker --loglevel=info
+    envVars:
+      - key: database_url
+        fromDatabase:
+          name: reroute-db
+          property: connectionString
+      - key: redis_url
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AVIATION_STACK_API_KEY
+        sync: false
+      - key: DUFFEL_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: OPENROUTESERVICE_API_KEY
+        sync: false
+      - key: jwt_secret_key
+        generateValue: true
+
+databases:
+  - name: reroute-db
+    databaseName: reroute
+    user: reroute
+    region: ohio
+    plan: starter
