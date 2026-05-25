@@ -1,5 +1,7 @@
 .env
 .env.local
+.env.production
+scripts/render-dashboard.env
 backend/.venv/
 backend/reroute.db
 backend/reroute.db-shm

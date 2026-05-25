@@ -1,0 +1,99 @@
+# Production-style stack: Postgres, Redis, API, Celery worker + beat, Next.js frontend.
+#
+#   cp .env.production.example .env.production
+#   # Edit secrets and public URLs, then:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# API:      http://localhost:8000/api/health
+# Frontend: http://localhost:3000
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-reroute}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:-reroute}
+    volumes:
+      - reroute_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-reroute} -d ${POSTGRES_DB:-reroute}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-reroute}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-reroute}
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_USE_ALEMBIC_ONLY: "true"
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+    command: ["celery", "-A", "worker.celery_app", "worker", "-l", "info"]
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-reroute}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-reroute}
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_USE_ALEMBIC_ONLY: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: ./backend
+    command: ["celery", "-A", "worker.celery_app", "beat", "-l", "info"]
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-reroute}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-reroute}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_REROUTE_AGENT_ASYNC: ${NEXT_PUBLIC_REROUTE_AGENT_ASYNC:-0}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  reroute_pgdata:

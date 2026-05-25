@@ -1,0 +1,51 @@
+# Render Blueprint — ReRoute.AI API (SQLite; data is ephemeral on free tier unless you add a disk or Postgres).
+# Connect repo in Render Dashboard → New → Blueprint, or New Web Service with rootDir reroute-ai/backend.
+#
+# Set secrets in the Render dashboard (Environment). See reroute-ai/docs/DEPLOY_VERCEL_RENDER.md.
+
+services:
+  - type: web
+    name: reroute-api
+    runtime: python
+    plan: free
+    rootDir: reroute-ai/backend
+    buildCommand: pip install .
+    startCommand: mkdir -p data && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./data/reroute.db
+      - key: DATABASE_USE_ALEMBIC_ONLY
+        value: "false"
+      - key: API_PREFIX
+        value: /api
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: EMAIL_VIA_CELERY
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DUFFEL_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: AVIATION_STACK_API_KEY
+        sync: false
+      - key: OPENROUTESERVICE_API_KEY
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
