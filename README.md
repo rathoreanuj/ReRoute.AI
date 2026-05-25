@@ -80,6 +80,17 @@ npm run dev
 
 The dev server defaults to port 3000 and expects the API on port 8000 unless you configure otherwise.
 
+## Deploy to production
+
+See **[reroute-ai/docs/DEPLOY.md](reroute-ai/docs/DEPLOY.md)** for Docker Compose and general hosting. For **Vercel + Render + SQLite**, see **[reroute-ai/docs/DEPLOY_VERCEL_RENDER.md](reroute-ai/docs/DEPLOY_VERCEL_RENDER.md)**. Quick start with Docker:
+
+```bash
+cd reroute-ai
+cp .env.production.example .env.production
+# edit secrets and URLs
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
 ## Background workers (optional)
 
 Email queueing, monitor cycles, long-running agent tasks, and related jobs expect **Redis** and a Celery worker.

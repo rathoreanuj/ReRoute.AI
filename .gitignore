@@ -20,3 +20,9 @@ final_ppt_submission.txt
 
 # Embedded guidelines copy (use separate repo or submodule if needed)
 reroute-coding-guidelines/
+
+# Local CLI binaries (installed by reroute-ai/scripts/Get-RenderCli.ps1)
+tools/render/*.exe
+tools/render/*.zip
+!tools/render/.gitkeep
+reroute-ai/scripts/.deploy-state.json
