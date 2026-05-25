@@ -26,6 +26,10 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    @app.get("/")
+    async def root() -> dict[str, str]:
+        return {"status": "ok", "health": f"{settings.api_prefix}/health"}
+
     app.include_router(api_router, prefix=settings.api_prefix)
     return app
 
